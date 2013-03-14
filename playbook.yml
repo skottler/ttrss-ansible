@@ -14,14 +14,17 @@
 # You should have received a copy of the GNU General Public License
 # along with this program.  If not, see <http://www.gnu.org/licenses/>.
 ---
-- name: Setup
+- name: Setup the requirements and the instance
   hosts: all
-  sudo: yes
+  tags:
+    - setup
+
   vars_files:
     - variables.yml
 
   tasks:
-  - yum: pkg=$item state=installed
+  - name: install requirements
+    action: yum pkg=$item state=installed
     with_items:
     - httpd
     - php
@@ -29,37 +32,65 @@
     - php-mbstring
     - php-xml
     - mysql-server
+    - MySQL-python
+    - git
+    - system-config-firewall-base
 
   - name: ensure httpd is running
-    action: service name=httpd state=started
-  
-  - name: ensure the ttrss docroot exists
-    action: file dest=/var/www/html/ttrss mode=0755 state=directory
+    action: service name=httpd state=started enabled=true
 
-  - name: checkout the ttrss source code from git
-    action: git repo=https://github.com/gothfox/Tiny-Tiny-RSS.git dest=$docroot
-    notify:
-    - restart httpd
+  - name: allow our ports
+    action: command /usr/sbin/lokkit $item
+    with_items:
+    - --service=ssh
+    - --service=https
+    - --service=http
+    
+  - name: bring up mysql
+    action: service name=mysqld state=started enabled=true
 
-  handlers:
-    - include: handlers.yml
-
-- name: Configuration
+- name: Configuration ttrss
   hosts: all
-  sudo: yes
+  tags: 
+    - config
+
+  vars_files:
+    - variables.yml
 
   tasks:
-  - name : create the image cache directory
-    action: file dest=$docroot/cache/images mode=777 state=directory
+  - name: ttrss user in mysql
+    action: mysql_user user=$db_user password=$db_password priv=*.*:ALL state=present
 
-  - name: create the export directory
-    action: file dest=$docroot/cache/export mode=777 state=directory
+  - name: create ttrss db
+    action: mysql_db db=ttrss state=present
 
-  - name: create the feed icons directory
-    action: file dest=$docroot/feed-icons mode=777 state=directory
+  - name: ensure the ttrss docroot exists and is the right context
+    action: file dest=$docroot mode=0755 state=directory context=public_content_rw_t
 
-  - name: create the lock directory
-    action: file dest=$docroot/lock mode=777 state=directory
+  - name: checkout the ttrss source code from git
+    action: git repo=https://github.com/gothfox/Tiny-Tiny-RSS.git dest=$docroot 
+
+  - name: import the db schema
+    action: shell creates=/etc/ttrss-db-imported mysql -u root ttrss < $docroot/schema/ttrss_schema_mysql.sql
+
+  - name : create the cache dirs
+    action: file dest=${docroot}/${item}  mode=777 state=directory context=public_content_rw_t
+    with_items:
+    - cache/images
+    - cache/export
+    - feed-icons
+    - lock
+  - name: make SURE the context is correct
+    action: command chcon -t public_content_rw_t $item
+    with_items:
+    - $docroot/cache/images
+    - $docroot/cache/export
+    - $docroot/feed-icons
+    - $docroot/lock
+    - $docroot
+
+  - name: set the selinux bool for apache anon writes
+    action: seboolean name=httpd_anon_write state=true persistent=yes
 
   - name: create the tt-rss configuration file
     action: template src=config.j2 dest=$docroot/config.php

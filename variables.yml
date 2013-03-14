@@ -1,2 +1,5 @@
 ---
-docroot: '/var/www/html/tsrss'
+docroot: /var/www/html/ttrss
+db_user: ttrss
+db_password: mypasswordhere
+urlpath: http://${ansible_fqdn}/ttrss/
