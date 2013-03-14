@@ -17,6 +17,8 @@
 - name: Setup
   hosts: all
   sudo: yes
+  vars_files:
+    - variables.yml
 
   tasks:
   - yum: pkg=$item state=installed
@@ -25,6 +27,7 @@
     - php
     - php-mysql
     - php-mbstring
+    - php-xml
     - mysql-server
 
   - name: ensure httpd is running
@@ -34,7 +37,7 @@
     action: file dest=/var/www/html/ttrss mode=0755 state=directory
 
   - name: checkout the ttrss source code from git
-    action: git repo=https://github.com/gothfox/Tiny-Tiny-RSS.git dest=/var/www/html/ttrss
+    action: git repo=https://github.com/gothfox/Tiny-Tiny-RSS.git dest=$docroot
     notify:
     - restart httpd
 
@@ -46,8 +49,20 @@
   sudo: yes
 
   tasks:
+  - name : create the image cache directory
+    action: file dest=$docroot/cache/images mode=777 state=directory
+
+  - name: create the export directory
+    action: file dest=$docroot/cache/export mode=777 state=directory
+
+  - name: create the feed icons directory
+    action: file dest=$docroot/feed-icons mode=777 state=directory
+
+  - name: create the lock directory
+    action: file dest=$docroot/lock mode=777 state=directory
+
   - name: create the tt-rss configuration file
-    action: template src=config.j2 dest=/var/www/html/ttrss/config.php
+    action: template src=config.j2 dest=$docroot/config.php
     notify:
     - restart httpd
 
