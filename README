@@ -1,0 +1,11 @@
+Simple ansible playbook to setup tiny-tiny rss ontop of fedora 18(ish).
+
+ - setup an instance somewhere (amazon, for example)
+ - make sure you have allowed for ports 22 and 80 in your security group
+ - run this playbook like:
+   ansible-playbook -i 'my_ip_here,' -s -u whatevrusername playbook.yml
+
+at the end you should have a working ttrss at: yourip/ttrss
+
+login as 'admin' password is 'password'
+
