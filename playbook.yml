@@ -26,16 +26,30 @@
     - php-mysql
     - php-mbstring
     - mysql-server
+
   - name: ensure httpd is running
     action: service name=httpd state=started
+  
+  - name: ensure the ttrss docroot exists
+    action: file dest=/var/www/html/ttrss mode=0755 state=directory
+
+  - name: checkout the ttrss source code from git
+    action: git repo=https://github.com/gothfox/Tiny-Tiny-RSS.git dest=/var/www/html/ttrss
+    notify:
+    - restart httpd
 
   handlers:
-    - name: restart httpd
-      action: service name=httpd state=restarted
+    - include: handlers.yml
 
 - name: Configuration
   hosts: all
   sudo: yes
 
   tasks:
+  - name: create the tt-rss configuration file
+    action: template src=config.j2 dest=/var/www/html/ttrss/config.php
+    notify:
+    - restart httpd
 
+  handlers:
+    - include: handlers.yml
