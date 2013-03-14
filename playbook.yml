@@ -1,0 +1,41 @@
+#
+# Copyright (C) 2013 Sam Kottler <shk@linux.com>
+#
+# This program is free software: you can redistribute it and/or modify
+# it under the terms of the GNU General Public License as published by
+# the Free Software Foundation, either version 3 of the License, or
+# (at your option) any later version.
+#
+# This program is distributed in the hope that it will be useful,
+# but WITHOUT ANY WARRANTY; without even the implied warranty of
+# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+# GNU General Public License for more details.
+#
+# You should have received a copy of the GNU General Public License
+# along with this program.  If not, see <http://www.gnu.org/licenses/>.
+---
+- name: Setup
+  hosts: all
+  sudo: yes
+
+  tasks:
+  - yum: pkg=$item state=installed
+    with_items:
+    - httpd
+    - php
+    - php-mysql
+    - php-mbstring
+    - mysql-server
+  - name: ensure httpd is running
+    action: service name=httpd state=started
+
+  handlers:
+    - name: restart httpd
+      action: service name=httpd state=restarted
+
+- name: Configuration
+  hosts: all
+  sudo: yes
+
+  tasks:
+
