@@ -65,7 +65,7 @@
     action: mysql_db db=ttrss state=present
 
   - name: ensure the ttrss docroot exists and is the right context
-    action: file dest=$docroot mode=0755 state=directory context=public_content_rw_t
+    action: file dest=$docroot mode=0755 state=directory setype=public_content_rw_t
 
   - name: checkout the ttrss source code from git
     action: git repo=https://github.com/gothfox/Tiny-Tiny-RSS.git dest=$docroot 
@@ -74,7 +74,7 @@
     action: shell creates=/etc/ttrss-db-imported mysql -u root ttrss < $docroot/schema/ttrss_schema_mysql.sql
 
   - name : create the cache dirs
-    action: file dest=${docroot}/${item}  mode=777 state=directory context=public_content_rw_t
+    action: file dest=${docroot}/${item}  mode=777 state=directory setype=public_content_rw_t
     with_items:
     - cache/images
     - cache/export
